@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Kaisei+Opti&family=Zen+Kurenaido&family=Noto+Sans+JP:wght@400;700&family=Playfair+Display:wght@700;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased text-gray-900 bg-[#04151f];
+  }
+}
+
+@layer utilities {
+  .washi-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.12;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+
+  .imperial-border {
+    @apply border-2 border-gold/20 relative;
+  }
+  .imperial-border::after {
+    content: '';
+    @apply absolute inset-[2px] border border-gold/10 pointer-events-none;
+  }
+
+  .font-brush {
+    font-family: 'Yuji Syuku', serif;
+  }
+  .font-serif-jp {
+    font-family: 'Kaisei Opti', serif;
+  }
+  .font-hand {
+    font-family: 'Zen Kurenaido', cursive;
+  }
+  .font-minimal {
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .font-display {
+    font-family: 'Playfair Display', serif;
+  }
+
+  .text-gold {
+    @apply text-[#d4af37];
+  }
+  .bg-gold {
+    @apply bg-gradient-to-br from-[#d4af37] via-[#f5d179] to-[#af8d1d];
+  }
+  .border-gold {
+    @apply border-[#d4af37]/30;
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in {
+    animation: fade-in 0.6s ease-out forwards;
+  }
+
+  @keyframes slide-up {
+    0% { opacity: 0; transform: translateY(20px); filter: blur(5px); }
+    20% { opacity: 1; transform: translateY(0); filter: blur(0); }
+    80% { opacity: 1; transform: translateY(0); filter: blur(0); }
+    100% { opacity: 0; transform: translateY(-20px); filter: blur(5px); }
+  }
+  .animate-slide-up {
+    animation: slide-up 5s ease-in-out infinite;
+  }
+
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(20px); filter: blur(5px); }
+    to { opacity: 1; transform: translateY(0); filter: blur(0); }
+  }
+  .animate-fade-in-up {
+    animation: fade-in-up 0.8s ease-out forwards;
+  }
+
+  @keyframes spirit-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); }
+    70% { box-shadow: 0 0 0 20px rgba(212, 175, 55, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
+  }
+  .animate-spirit-pulse {
+    animation: spirit-pulse 2s infinite;
+  }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin-slow {
+    animation: spin-slow 12s linear infinite;
+  }
+
+  @keyframes spin-reverse-slow {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+  }
+  .animate-spin-reverse-slow {
+    animation: spin-reverse-slow 8s linear infinite;
+  }
+
+  @keyframes bounce-slow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+  }
+  .animate-bounce-slow {
+    animation: bounce-slow 4s ease-in-out infinite;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 3px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(212, 175, 55, 0.05);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(212, 175, 55, 0.3);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(212, 175, 55, 0.5);
+  }
+}
+
+

@@ -1,0 +1,5 @@
+{
+  "name": "Japan Name Generator AI",
+  "description": "An AI-powered application that generates beautiful Japanese Kanji names from an English name based on your chosen style. You can download the generated names as images.",
+  "requestFramePermissions": []
+}
