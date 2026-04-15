@@ -2,7 +2,7 @@ import sharp from "sharp";
 import express from "express";
 import cors from "cors";
 import { createServer as createViteServer } from "vite";
-import { generateHanko, generateLore, generateKamon } from "./services/geminiService";
+import { generateHanko, generateLore, generateKamon, generateKamonExplanation } from "./services/geminiService";
 
 async function startServer() {
   const app = express();
@@ -78,6 +78,18 @@ async function startServer() {
     } catch (error: any) {
       console.error("Kamon error:", error);
       res.status(500).json({ error: "Failed to generate kamon" });
+    }
+  });
+
+  // Kamon Explanation Generation (Server Side)
+  app.post("/api/generate-kamon-explanation", async (req, res) => {
+    try {
+      const { kamonBase64, meaning, locale } = req.body;
+      const explanation = await generateKamonExplanation(kamonBase64, meaning, locale);
+      res.json({ explanation });
+    } catch (error: any) {
+      console.error("Kamon explanation error:", error);
+      res.status(500).json({ error: "Failed to generate kamon explanation" });
     }
   });
 

@@ -20,7 +20,7 @@ const responseSchema = {
       },
       meaning: {
         type: Type.STRING,
-        description: 'A profound, poetic explanation in English. MUST include a breakdown of EACH Kanji character and how their combination creates a unique spiritual identity.',
+        description: 'A concise 1-sentence summary of the combined Kanji meaning (e.g., "Light of the Azure Sky").',
       },
     },
     required: ['kanji', 'hiragana', 'meaning'],
@@ -34,11 +34,14 @@ export const generateHanko = async (kanji: string, font: string, meaning: string
       contents: {
         parts: [
           {
-            text: `Design an authentic, professional Japanese square seal (Hanko/Inkan) in traditional "Shubun" (朱文) style.
+            text: `Design an authentic, professional Japanese CIRCULAR seal (Hanko/Inkan) in traditional "Shubun" (朱文) style.
+            
+            CRITICAL LAYOUT INSTRUCTION:
+            The outer boundary must be a SINGLE ROUND CIRCLE (a thick, solid red circular ring). The Kanji characters must be composed to fill the space INSIDE this circle directly, expanding to meet the circular edges. 
+            ABSOLUTELY NO square frames or internal boxes. Do NOT draw a square stamp inside a circle. The ONLY border is the outer circular edge itself.
             
             Key visual attributes:
-            - Content: ONLY the characters "${kanji}" in classic, thick "Tensho-tai" (Ancient Seal Script) calligraphy.
-            - Layout: Square shape with a matching formal border.
+            - Content: ONLY the characters "${kanji}" in classic, thick "Tensho-tai" (Ancient Seal Script) calligraphy, elegantly stretched and arranged to fit the circular shape (known as Maruin or Jitsuin style).
             - Texture: Realistic, grainy vermilion ink impression. It must look like it was hand-carved from stone or wood and stamped onto paper, with subtle ink bleed and organic, imperfect edges.
             - Colors: Deep vermilion red ink (#D50500) on a pure white background.
             - Perspective: Straight top-down view.
@@ -169,46 +172,25 @@ CRITICAL RULES:
 
 export const generateNames = async (englishName: string, style: Style, locale: string = 'en'): Promise<NameCandidate[]> => {
   const langInstruction = locale === 'ko'
-    ? `For the "meaning" field, create a MAGNIFICENT NARRATIVE in Korean:
-       - First, explicitly define the meaning of EACH Kanji character used (e.g., '光 (hikari) — 빛, 광채').
-       - Include the On'yomi (Chinese reading) and Kun'yomi (Japanese reading) for each character in the format: '光 (kou) — On'yomi: コウ (kou) | Kun'yomi: ひかり (hikari)'.
-       - Then, weave them into a poetic story in Korean that justifies why this specific combination matches the chosen style.
-       - Use an evocative and premium tone (e.g., "마치 별빛이 내려앉듯...").`
-    : `For the "meaning" field, create a MAGNIFICENT NARRATIVE in English:
-       - First, explicitly define the meaning of EACH Kanji character used (e.g., '光 (hikari) — light, radiance').
-       - Include the On'yomi (Chinese reading) and Kun'yomi (Japanese reading) for each character.
-       - Then, weave them into a poetic story that justifies why this specific combination matches the chosen style.
-       - The tone should be evocative and premium, making the user feel a deep connection to the name.`;
+    ? `For the "meaning" field: Write a single concise Korean sentence (15 words max) that poetically captures the combined meaning of the Kanji characters. Example: "새벽 하늘에 빛나는 고귀한 별". Do NOT include readings or character breakdowns.`
+    : `For the "meaning" field: Write a single concise English sentence (12 words max) that poetically captures the combined meaning of the Kanji characters. Example: "Radiant star shining upon the noble dawn". Do NOT include readings or character breakdowns.`;
 
   const prompt = `
-    Task: Create 4 unique Japanese Kanji name suggestions based on the English name "${englishName}" and the style "${style}".
+    Create 4 unique Japanese Kanji name suggestions for "${englishName}" in "${style}" style.
+    Styles: Pop=modern/energetic, Minimal=clean/elegant, Feminine=soft/graceful, Traditional=dignified/classic.
 
-    Context for Styles:
-    - Pop: Vibrant, modern, and energetic Kanji. Often uses characters associated with light, stars, or current trends.
-    - Minimal: Clean, sophisticated, and easy-to-read Kanji with fewer strokes. Minimalist elegance.
-    - Feminine: Soft, graceful, and beautiful Kanji. Often related to flowers (Hana), seasons, or gentle emotions.
-    - Traditional: Dignified, classic, and historic Kanji. Reflects deep cultural heritage and strong virtues.
+    Rules:
+    1. Phonetically resemble "${englishName}". Use positive Kanji only. Sound natural.
+    2. ${langInstruction}
+    3. Use ONLY Jinmeiyō/Jōyō Kanji. NEVER use negative Kanji (死苦悪病貧鬼毒etc).
+    4. Self-check: no slang, vulgar homophones, or inappropriate phrases.
 
-    Constraints:
-    1. The name must phonetically resemble "${englishName}".
-    2. Use only Kanji with positive or beautiful meanings.
-    3. Ensure the names sound natural as Japanese names.
-    4. Provide exactly 4 diverse candidates.
-    5. ${langInstruction}
-
-    ===== CRITICAL SAFETY GUARDRAILS =====
-    6. ONLY use Kanji from the official Jinmeiyō Kanji (人名用漢字) and Jōyō Kanji (常用漢字) lists — characters legally approved for Japanese names.
-    7. ABSOLUTELY NEVER use Kanji associated with: death (死), suffering (苦), evil (悪/魔), illness (病), poverty (貧), decay (腐), destruction (壊/滅), demons (鬼), poison (毒), war casualties (屍), misfortune (災/厄), ugliness (醜), slavery (奴), or any other negative, vulgar, or ominous meaning.
-    8. After generating each name, perform a SELF-CHECK: verify that the combined Kanji do NOT form any Japanese slang, vulgar expression, unfortunate homophone (同音異義語), or culturally inappropriate phrase. If any candidate fails this check, replace it with a safe alternative.
-    9. Each Kanji character chosen must individually carry a beautiful, auspicious, or noble meaning (e.g., light 光, beauty 美, wisdom 智, flower 花, sky 空, harmony 和, truth 真).
-    =====================================
-
-    Return the output as a JSON array of objects.
+    Return JSON array of objects.
   `;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-3-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -270,4 +252,47 @@ export const clientGenerateKamon = async (meaning: string): Promise<string> => {
   if (!response.ok) throw new Error('Failed to generate kamon');
   const data = await response.json();
   return data.kamonData;
+};
+
+export const generateKamonExplanation = async (kamonBase64: string, meaning: string, locale: string = 'en'): Promise<string> => {
+  const langInstruction = locale === 'ko'
+    ? `한국어로 문양의 상징적 의미를 깊이 있게 해설해 주세요 (2~3문장). 철학적이고 우아한 어조를 유지하세요.`
+    : `Write an elegant and poetic explanation in English (2-3 sentences) detailing how the visual elements in this crest symbolize the meaning.`;
+
+  const prompt = `This family crest (Kamon) was just generated based on the meaning: "${meaning}".
+  Observe the visual elements in the newly created crest image provided.
+  Explain how these shapes and elements represent the meaning and spirit of the clan.
+  
+  ${langInstruction}`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-pro-preview",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType: "image/png", data: kamonBase64 } }
+          ],
+        }
+      ],
+    });
+
+    return response.text.trim();
+  } catch (error) {
+    console.error("Error generating Kamon explanation:", error);
+    throw error;
+  }
+};
+
+export const clientGenerateKamonExplanation = async (kamonBase64: string, meaning: string, locale: string): Promise<string> => {
+  const response = await fetch('/api/generate-kamon-explanation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kamonBase64, meaning, locale }),
+  });
+  if (!response.ok) throw new Error('Failed to generate kamon explanation');
+  const data = await response.json();
+  return data.explanation;
 };

@@ -50,7 +50,7 @@ const InitialState: React.FC = () => {
 
 export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ candidates, isLoading, error, selectedFont, userProfile }) => {
   const { t } = useTranslation();
-  const [paidCandidate, setPaidCandidate] = useState<NameCandidate | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<NameCandidate | null>(null);
 
   if (isLoading) {
     return <div className="py-20"><LoadingSpinner /></div>;
@@ -80,30 +80,13 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ candidates, isLo
             </h2>
           </div>
 
-          {/* Heritage Package Transparency Banner */}
-          <div className="max-w-2xl w-full bg-gold/5 backdrop-blur-md rounded-[2rem] border border-gold/20 p-6 md:p-8 flex flex-col md:flex-row items-center gap-8 text-left shadow-xl relative overflow-hidden group">
-            <div className="absolute inset-0 washi-pattern opacity-10 pointer-events-none"></div>
-            
-            <div className="flex-grow space-y-4">
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-gold animate-pulse">new_releases</span>
-                <h3 className="text-lg md:text-xl text-white font-black uppercase tracking-widest">{t('payment.heritageBundle')}</h3>
-              </div>
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-                 {[t('payment.itemStamp'), t('payment.itemLore'), t('payment.itemCard')].map((item, i) => (
-                   <li key={i} className="flex items-start gap-2 text-[11px] md:text-xs text-[#f5e6be]/70 leading-relaxed font-medium">
-                     <span className="material-symbols-outlined text-[14px] text-gold mt-0.5">verified</span>
-                     {item}
-                   </li>
-                 ))}
-              </ul>
+          {/* Free Tier Info Banner */}
+          <div className="max-w-2xl w-full bg-emerald-900/20 backdrop-blur-md rounded-[2rem] border border-emerald-500/30 p-6 flex flex-col items-center gap-3 shadow-xl relative overflow-hidden">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-emerald-400">check_circle</span>
+              <h3 className="text-lg text-white font-bold uppercase tracking-widest">{t('results.freeResultTitle')}</h3>
             </div>
-
-            <div className="flex flex-col items-center md:items-end gap-1 min-w-[120px] pt-4 md:pt-0 border-t md:border-t-0 md:border-l border-gold/20 md:pl-8">
-              <span className="text-[10px] text-gold font-bold uppercase tracking-tighter opacity-60">{t('payment.oneTimeFee')}</span>
-              <span className="text-4xl text-white font-black drop-shadow-lg">{t('payment.price')}</span>
-              <span className="text-[10px] text-gold/60 font-medium italic mt-1">{t('payment.revealDesc')}</span>
-            </div>
+            <p className="text-[12px] text-emerald-200/70 text-center leading-relaxed max-w-md">{t('results.freeResultDesc')}</p>
           </div>
         </div>
         
@@ -115,18 +98,18 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ candidates, isLo
                     index={index} 
                     font={selectedFont} 
                     userProfile={userProfile} 
-                    onPaymentSuccess={setPaidCandidate}
+                    onSelect={setSelectedCandidate}
                   />
                 </div>
             ))}
         </div>
 
-        {paidCandidate && (
+        {selectedCandidate && (
           <GrandRevealModal 
-             candidate={paidCandidate}
+             candidate={selectedCandidate}
              font={selectedFont}
              userProfile={userProfile}
-             onClose={() => setPaidCandidate(null)}
+             onClose={() => setSelectedCandidate(null)}
           />
         )}
     </div>
