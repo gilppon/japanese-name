@@ -3,6 +3,9 @@ import { cors } from 'hono/cors';
 import { env } from 'hono/adapter';
 
 import { 
+  generateHanko,
+  generateLore,
+  generateKamon,
   generateKamonExplanation, 
   generateDeepMeaning,
   generateNames
@@ -151,7 +154,7 @@ app.post("/generate-deep-meaning", async (c) => {
 // Save Order
 app.post("/save-order", async (c) => {
   try {
-    const body = await c.req.json();
+    const body = await c.req.json() as any;
     const cEnv = env(c);
     const { paypalOrderId, email, kanji } = body;
 
@@ -159,9 +162,9 @@ app.post("/save-order", async (c) => {
       return c.json({ error: "Missing required fields" }, 400);
     }
 
-    const clientId = cEnv.VITE_PAYPAL_CLIENT_ID || cEnv.PAYPAL_CLIENT_ID;
-    const clientSecret = cEnv.PAYPAL_SECRET;
-    const isValidOrder = await verifyPayPalOrder(paypalOrderId, clientId, clientSecret);
+    const clientId = (cEnv.VITE_PAYPAL_CLIENT_ID || cEnv.PAYPAL_CLIENT_ID) as string;
+    const clientSecret = cEnv.PAYPAL_SECRET as string;
+    const isValidOrder = await verifyPayPalOrder(paypalOrderId as string, clientId, clientSecret);
     if (!isValidOrder) {
       return c.json({ error: "Invalid PayPal order" }, 400);
     }
@@ -277,7 +280,7 @@ app.post("/lookup-orders", async (c) => {
 // Save Kamon
 app.post("/save-kamon", async (c) => {
   try {
-    const body = await c.req.json();
+    const body = await c.req.json() as any;
     const cEnv = env(c);
     const { paypalOrderId, email, kamonUrl } = body;
 
@@ -285,9 +288,9 @@ app.post("/save-kamon", async (c) => {
       return c.json({ error: "Missing required fields" }, 400);
     }
 
-    const clientId = cEnv.VITE_PAYPAL_CLIENT_ID || cEnv.PAYPAL_CLIENT_ID;
-    const clientSecret = cEnv.PAYPAL_SECRET;
-    const isValidOrder = await verifyPayPalOrder(paypalOrderId, clientId, clientSecret);
+    const clientId = (cEnv.VITE_PAYPAL_CLIENT_ID || cEnv.PAYPAL_CLIENT_ID) as string;
+    const clientSecret = cEnv.PAYPAL_SECRET as string;
+    const isValidOrder = await verifyPayPalOrder(paypalOrderId as string, clientId, clientSecret);
     if (!isValidOrder) {
       return c.json({ error: "Invalid PayPal order" }, 400);
     }
