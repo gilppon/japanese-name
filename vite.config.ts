@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
         react(),
         Sitemap({ hostname: 'https://kanji.next-haru.com', dynamicRoutes: ['/privacy', '/terms', '/refund'] }),
         devServer({
-          entry: 'app.ts',
+          entry: 'api_engine.ts',
           exclude: [/^.*\.tsx?$/, /^.*\.(ts|tsx)$/, /^\/assets\/.*/, /^\/src\/.*/]
         })
       ],
