@@ -8,7 +8,7 @@ import { OrderLookup } from './components/OrderLookup';
 import { TermsOfService } from './components/legal/TermsOfService';
 import { RefundPolicy } from './components/legal/RefundPolicy';
 import { PrivacyPolicy } from './components/legal/PrivacyPolicy';
-import { generateNames } from './services/geminiService';
+import { clientGenerateNames } from './services/geminiService';
 import { Style, NameCandidate, FontType, UserProfile } from './types';
 import { LanguageProvider, useTranslation } from './i18n';
 import { SEOHead } from './components/SEOHead';
@@ -63,7 +63,7 @@ function AppContent() {
     setSelectedFont(font);
     setUserProfile(profile);
     try {
-      const results = await generateNames(profile.name, style, nativeLocale);
+      const results = await clientGenerateNames(profile.name, style, nativeLocale);
       setCandidates(results);
       localStorage.setItem('candidates', JSON.stringify(results));
       localStorage.setItem('userProfile', JSON.stringify(profile));

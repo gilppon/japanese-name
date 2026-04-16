@@ -350,3 +350,13 @@ export const clientGenerateDeepMeaning = async (kanji: string, meaning: string, 
   const data = await response.json();
   return data.deepMeaning;
 };
+
+export const clientGenerateNames = async (name: string, style: Style, locale: string): Promise<NameCandidate[]> => {
+  const response = await fetch('/api/generate-names', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, style, locale }),
+  });
+  if (!response.ok) throw new Error('Failed to generate names');
+  return await response.json();
+};

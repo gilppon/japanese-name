@@ -3,11 +3,9 @@ import { cors } from 'hono/cors';
 import { env } from 'hono/adapter';
 
 import { 
-  generateHanko, 
-  generateLore, 
-  generateKamon, 
   generateKamonExplanation, 
-  generateDeepMeaning 
+  generateDeepMeaning,
+  generateNames
 } from "./services/geminiService";
 import { 
   saveOrder, 
@@ -71,6 +69,19 @@ app.use('*', cors());
 
 // Health Check
 app.get("/health", (c) => c.json({ status: "ok" }));
+
+// Name Generation
+app.post("/generate-names", async (c) => {
+  try {
+    const { name, style, locale } = await c.req.json();
+    const cEnv = env(c);
+    const names = await generateNames(name, style, locale, cEnv);
+    return c.json(names);
+  } catch (error: any) {
+    console.error("Generate names error:", error);
+    return c.json({ error: "Failed to generate names" }, 500);
+  }
+});
 
 // Hanko Generation
 app.post("/generate-hanko", async (c) => {
