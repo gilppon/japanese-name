@@ -35,7 +35,7 @@ export async function sendOrderConfirmation(order: PurchaseRecord, cEnv?: any): 
 
   try {
     const { error } = await resend.emails.send({
-      from: 'KanjiGen AI <onboarding@resend.dev>',
+      from: 'KanjiGen AI <no-reply@kanji.next-haru.com>',
       to: order.email,
       subject: `✨ Your Japanese Name "${order.kanji}" is Ready — Permanent Heritage Link`,
       html: generateOrderEmail(order, viewUrl)
@@ -84,7 +84,7 @@ export async function resendOrderLinks(email: string, orders: PurchaseRecord[], 
 
   try {
     const { error } = await resend.emails.send({
-      from: 'KanjiGen AI <onboarding@resend.dev>',
+      from: 'KanjiGen AI <no-reply@kanji.next-haru.com>',
       to: email,
       subject: `🏯 Your Japanese Name Heritage — ${orders.length} Name(s) Found`,
       html: `
