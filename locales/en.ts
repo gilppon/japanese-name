@@ -75,6 +75,9 @@ export const en = {
   },
   footer: {
     copyright: '名 © 2026 Next-Haru Inc. All rights reserved.',
+    terms: 'Terms of Service',
+    privacy: 'Privacy Policy',
+    refund: 'Refund Policy',
   },
   seo: {
     title: 'KanjiGen AI — Japanese Kanji Name Generator | Your Identity in Kanji',

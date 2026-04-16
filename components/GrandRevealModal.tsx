@@ -14,7 +14,7 @@ interface GrandRevealModalProps {
 }
 
 export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, font, userProfile, onClose }) => {
-  const { t, locale } = useTranslation();
+  const { t, locale, nativeLocale } = useTranslation();
   const cardRef = useRef<HTMLDivElement>(null);
   
   // Heritage ($4.99) state
@@ -25,16 +25,24 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
   const [heritageError, setHeritageError] = useState<string | null>(null);
   const [deepMeaningText, setDeepMeaningText] = useState<string | null>(null);
   
+  // Order save state
+  const [orderSaved, setOrderSaved] = useState(false);
+  const [orderSaveMessage, setOrderSaveMessage] = useState<string | null>(null);
+  const [payerEmail, setPayerEmail] = useState<string | null>(null);
+  const [heritagePaypalOrderId, setHeritagePaypalOrderId] = useState<string | null>(null);
+  
   // Kamon ($3.99) state
   const [kamonImage, setKamonImage] = useState<string | null>(null);
   const [isGeneratingKamon, setIsGeneratingKamon] = useState(false);
   const [kamonExplanation, setKamonExplanation] = useState<string | null>(null);
   const [isGeneratingKamonExplanation, setIsGeneratingKamonExplanation] = useState(false);
 
-  const handleHeritagePaymentSuccess = async () => {
+  const handleHeritagePaymentSuccess = async (email?: string, paypalOrderId?: string) => {
     setHeritagePaid(true);
     setIsGeneratingHeritage(true);
     setHeritageError(null);
+    if (email) setPayerEmail(email);
+    if (paypalOrderId) setHeritagePaypalOrderId(paypalOrderId);
     try {
       const fontLabel = font === FontType.Brush ? 'Brush Calligraphy' :
                         font === FontType.Serif ? 'Mincho/Serif' :
@@ -49,14 +57,52 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
               userProfile.birthday,
               userProfile.personality as string[],
               userProfile.gender,
-              locale
+              nativeLocale
             )
           : Promise.resolve(null),
-        clientGenerateDeepMeaning(candidate.kanji, candidate.meaning, locale)
+        clientGenerateDeepMeaning(candidate.kanji, candidate.meaning, nativeLocale)
       ]);
       setHankoImage(imgData);
       setLoreText(lore);
       setDeepMeaningText(deepMeaning);
+
+      // Circuit Breaker: 서버 저장 시도 (실패해도 생성물은 유지)
+      if (email && paypalOrderId) {
+        try {
+          const saveResp = await fetch('/api/save-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              paypalOrderId,
+              email,
+              originalName: userProfile?.name || '',
+              kanji: candidate.kanji,
+              hiragana: candidate.hiragana,
+              meaning: candidate.meaning,
+              deepMeaning: deepMeaning,
+              loreText: lore,
+              hankoUrl: imgData,
+              amountPaid: 4.99,
+              locale: nativeLocale,
+              productType: 'heritage'
+            })
+          });
+          const saveData = await saveResp.json();
+          if (saveData.success) {
+            setOrderSaved(true);
+            setOrderSaveMessage(
+              saveData.emailFailed
+                ? '✅ Your heritage is saved! (Email delivery will retry later)'
+                : '✅ Saved! A permanent heritage link has been sent to your email.'
+            );
+          } else if (saveData.fallback) {
+            setOrderSaveMessage('⚠️ Cloud save unavailable. Please download your files directly.');
+          }
+        } catch (saveError) {
+          console.error('[Circuit Breaker] Order save failed:', saveError);
+          setOrderSaveMessage('⚠️ Cloud save unavailable. Please download your files directly.');
+        }
+      }
     } catch (e) {
       console.error(e);
       setHeritageError("Generation failed. Your payment was successful. Please contact support.");
@@ -205,8 +251,10 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
                   }}
                   onApprove={async (data, actions) => {
                     if(actions.order) {
-                      await actions.order.capture();
-                      handleHeritagePaymentSuccess();
+                      const details = await actions.order.capture();
+                      const email = (details as any)?.payer?.email_address;
+                      const orderId = (details as any)?.id;
+                      handleHeritagePaymentSuccess(email, orderId);
                     }
                   }}
                   style={{ layout: "horizontal", height: 48, color: "gold", tagline: false, shape: "pill" }}
@@ -377,6 +425,20 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
                 <span className="material-symbols-outlined">download</span>
                 {isGeneratingHeritage ? "Preparing Artifact..." : t('card.downloadButton')}
               </button>
+
+              {/* Order Save Status Banner */}
+              {orderSaveMessage && (
+                <div className={`w-full rounded-2xl p-4 border text-center text-sm animate-fade-in ${
+                  orderSaved
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                    : 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+                }`}>
+                  <p>{orderSaveMessage}</p>
+                  {payerEmail && orderSaved && (
+                    <p className="text-[10px] mt-2 opacity-60">📧 {payerEmail}</p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* ===== SECTION 2: KAMON UPSELL ($3.99) ===== */}
@@ -485,7 +547,9 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
                           }}
                           onApprove={async (data, actions) => {
                             if(actions.order) {
-                              await actions.order.capture();
+                              const details = await actions.order.capture();
+                              const kamonEmail = (details as any)?.payer?.email_address || payerEmail;
+                              const kamonPaypalOrderId = (details as any)?.id;
                               try {
                                 setIsGeneratingKamon(true);
                                 const kamonUrl = await clientGenerateKamon(candidate.meaning);
@@ -494,8 +558,27 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
 
                                 setIsGeneratingKamonExplanation(true);
                                 const base64Data = kamonUrl.split(',')[1];
-                                const explanation = await clientGenerateKamonExplanation(base64Data, candidate.meaning, locale);
+                                const explanation = await clientGenerateKamonExplanation(base64Data, candidate.meaning, nativeLocale);
                                 setKamonExplanation(explanation);
+
+                                // Save Kamon to server
+                                if (kamonEmail && kamonPaypalOrderId) {
+                                  try {
+                                    await fetch('/api/save-kamon', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        paypalOrderId: kamonPaypalOrderId,
+                                        email: kamonEmail,
+                                        kamonUrl,
+                                        kamonExplanation: explanation,
+                                        amountPaid: 3.99
+                                      })
+                                    });
+                                  } catch (saveErr) {
+                                    console.error('[Circuit Breaker] Kamon save failed:', saveErr);
+                                  }
+                                }
                               } catch (err) {
                                 console.error(err);
                                 alert("Generation failed, but your payment was successful. Please contact support.");

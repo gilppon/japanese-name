@@ -1,9 +1,23 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { NameCandidate, Style } from '../types';
+import { processHankoImage } from '../utils/hankoCanvasProcessor';
 
-const API_KEY = process.env.GEMINI_API_KEY || process.env.API_KEY;
+// Cloudflare 엣지 환경 지원: process.env 대신 컨텍스트(env)를 명시적으로 주입받거나 글로벌 fallback 사용
+export function getCFApiKey(cEnv?: any): string {
+  if (cEnv?.GEMINI_API_KEY) return cEnv.GEMINI_API_KEY;
+  if (cEnv?.API_KEY) return cEnv.API_KEY;
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env.GEMINI_API_KEY || process.env.API_KEY || '';
+  }
+  return '';
+}
 
-const ai = new GoogleGenAI({ apiKey: API_KEY || "" });
+// 지연 초기화를 통한 API 클라이언트 생성 가이드
+function getAiClient(cEnv?: any) {
+  const apiKey = getCFApiKey(cEnv);
+  if (!apiKey) throw new Error("Gemini API Key is missing");
+  return new GoogleGenAI({ apiKey });
+}
 
 const responseSchema = {
   type: Type.ARRAY,
@@ -27,11 +41,11 @@ const responseSchema = {
   },
 };
 
-export const generateHanko = async (kanji: string, font: string, meaning: string): Promise<string> => {
+export const generateHanko = async (kanji: string, font: string, meaning: string, cEnv?: any): Promise<string> => {
   try {
     const stampText = kanji.length === 3 ? `${kanji}印` : kanji;
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-image-preview',
+    const response = await getAiClient(cEnv).models.generateContent({
+      model: 'gemini-3-pro-image-preview',
       contents: {
         parts: [
           {
@@ -43,17 +57,18 @@ export const generateHanko = async (kanji: string, font: string, meaning: string
             
             Key visual attributes:
             - Content: EXACTLY the characters "${stampText}" in classic, thick "Tensho-tai" (Ancient Seal Script) calligraphy, elegantly stretched and arranged to fit the circular shape (known as Maruin or Jitsuin style).
-            - Texture: Realistic, grainy vermilion ink impression. It must look like it was hand-carved from stone or wood and stamped onto paper, with subtle ink bleed and organic, imperfect edges.
-            - Colors: Deep vermilion red ink (#D50500) on a pure white background.
+            - Texture: Clean, pristine, flat vector graphic style. ABSOLUTELY NO ink bleed, NO grainy paper texture, and NO imperfect edges. It must be perfectly smooth and razor-sharp.
+            - Colors: Deep vermilion red (#D50500) on a pure white background.
             - Perspective: Straight top-down view.
             
-            Do NOT provide a digital-looking badge or flat icon. It must look like a high-quality physical stamp impression.`,
+            The design MUST be a clean digital graphic resembling a modern minimalist logo, rather than a physical or realistic stamped impression.`,
           },
         ],
       },
       config: {
         imageConfig: {
-          aspectRatio: "1:1"
+          aspectRatio: "1:1",
+          imageSize: "2K"
         }
       }
     });
@@ -71,10 +86,10 @@ export const generateHanko = async (kanji: string, font: string, meaning: string
   }
 };
 
-export const generateKamon = async (meaning: string): Promise<string> => {
+export const generateKamon = async (meaning: string, cEnv?: any): Promise<string> => {
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-image-preview', // Pro does not support image generation natively yet
+    const response = await getAiClient(cEnv).models.generateContent({
+      model: 'gemini-3-pro-image-preview',
       contents: {
         parts: [
           {
@@ -90,7 +105,8 @@ CRITICAL RULES:
       },
       config: {
         imageConfig: {
-          aspectRatio: "1:1"
+          aspectRatio: "1:1",
+          imageSize: "2K"
         }
       }
     });
@@ -113,7 +129,8 @@ export const generateLore = async (
   birthday: string,
   personality: string[],
   gender: string,
-  locale: string = 'en'
+  locale: string = 'en',
+  cEnv?: any
 ): Promise<string> => {
   const birthDate = new Date(birthday);
   const month = birthDate.getMonth() + 1;
@@ -121,13 +138,7 @@ export const generateLore = async (
                  month <= 5 ? '春 (Spring)' :
                  month <= 8 ? '夏 (Summer)' : '秋 (Autumn)';
 
-  const langInstruction = locale === 'ko'
-    ? `Write in Korean with occasional Japanese terms in parentheses for cultural flavor.
-       Example season tie: "겨울에 태어난 자는 역경 속에서도 빛을 잃지 않는다."
-       Use 200-250 Korean characters max.`
-    : `Write in evocative English with occasional Japanese terms (romaji + kanji in parentheses) for cultural flavor.
-       Example season tie: "Those born in winter never lose their light, even amidst the fiercest storms."
-       Use 150-200 English words max.`;
+  const langInstruction = `Write in the language represented by this BCP-47 tag: "${locale}". Use evocative, poetic language with occasional Japanese terms (romaji + kanji in parentheses) for cultural flavor. Connect the birth season to the destiny of the clan. Keep the length to approximately 150-200 words.`;
 
   const prompt = `
 You are a master Japanese historian and storyteller specializing in the Sengoku period (1467-1615).
@@ -159,7 +170,7 @@ CRITICAL RULES:
 `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAiClient(cEnv).models.generateContent({
       model: "gemini-3.1-pro-preview",
       contents: prompt,
     });
@@ -171,10 +182,8 @@ CRITICAL RULES:
   }
 };
 
-export const generateNames = async (englishName: string, style: Style, locale: string = 'en'): Promise<NameCandidate[]> => {
-  const langInstruction = locale === 'ko'
-    ? `For the "meaning" field: Write a single concise Korean sentence (15 words max) that poetically captures the combined meaning of the Kanji characters. Example: "새벽 하늘에 빛나는 고귀한 별". Do NOT include readings or character breakdowns.`
-    : `For the "meaning" field: Write a single concise English sentence (12 words max) that poetically captures the combined meaning of the Kanji characters. Example: "Radiant star shining upon the noble dawn". Do NOT include readings or character breakdowns.`;
+export const generateNames = async (englishName: string, style: Style, locale: string = 'en', cEnv?: any): Promise<NameCandidate[]> => {
+  const langInstruction = `For the "meaning" field: Write a single concise sentence (10-15 words max) natively translated to the language represented by this BCP-47 tag: "${locale}". If the language is not specified, use English. Poetically capture the combined meaning of the Kanji characters. Do NOT include readings or character breakdowns.`;
 
   const prompt = `
     Create 4 unique Japanese Kanji name suggestions for "${englishName}" in "${style}" style.
@@ -190,7 +199,7 @@ export const generateNames = async (englishName: string, style: Style, locale: s
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAiClient(cEnv).models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
@@ -213,10 +222,8 @@ export const generateNames = async (englishName: string, style: Style, locale: s
   }
 };
 
-export const generateDeepMeaning = async (kanji: string, meaning: string, locale: string = 'en'): Promise<string> => {
-  const langInstruction = locale === 'ko'
-    ? `한국어로 작성하세요. 각 한자의 음독(On'yomi), 훈독(Kun'yomi), 그리고 한자 자체의 뜻을 한 글자씩 상세히 해부하여 설명하고, 마지막에 이름 전체의 철학적 의미를 2~3문장으로 깊이 있게 요약하세요.`
-    : `Write in English. Explain each Kanji character individually (including On'yomi, Kun'yomi, and meaning), and then provide a deep philosophical explanation of the entire name in 2-3 sentences.`;
+export const generateDeepMeaning = async (kanji: string, meaning: string, locale: string = 'en', cEnv?: any): Promise<string> => {
+  const langInstruction = `Respond natively and beautifully in the language represented by this BCP-47 tag: "${locale}". If the language is not specified, use English. Explain each Kanji character individually (including On'yomi, Kun'yomi, and meaning), and then provide a deep philosophical explanation of the entire name in 2-3 sentences.`;
 
   const prompt = `Analyze the Japanese Kanji name: ${kanji} (Brief meaning: ${meaning}).
   
@@ -235,7 +242,7 @@ Expected format (Plain text only, use newlines for spacing, avoid markdown synta
 [Deep meaning of the name here]`;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAiClient(cEnv).models.generateContent({
       model: "gemini-3.1-pro-preview",
       contents: prompt,
     });
@@ -248,6 +255,7 @@ Expected format (Plain text only, use newlines for spacing, avoid markdown synta
 
 // --- Client Side Wrappers (Call the local Express API) ---
 
+
 export const clientGenerateHanko = async (kanji: string, font: string, meaning: string): Promise<string> => {
   const response = await fetch('/api/generate-hanko', {
     method: 'POST',
@@ -256,7 +264,10 @@ export const clientGenerateHanko = async (kanji: string, font: string, meaning: 
   });
   if (!response.ok) throw new Error('Failed to generate hanko');
   const data = await response.json();
-  return data.hankoData;
+  
+  // 서버에서 받은 raw base64를 Canvas 프로세서를 통해 버밀리언 합성
+  const processedImage = await processHankoImage(data.hankoData);
+  return processedImage;
 };
 
 export const clientGenerateLore = async (
@@ -288,10 +299,8 @@ export const clientGenerateKamon = async (meaning: string): Promise<string> => {
   return data.kamonData;
 };
 
-export const generateKamonExplanation = async (kamonBase64: string, meaning: string, locale: string = 'en'): Promise<string> => {
-  const langInstruction = locale === 'ko'
-    ? `한국어로 문양의 상징적 의미를 깊이 있게 해설해 주세요 (2~3문장). 철학적이고 우아한 어조를 유지하세요.`
-    : `Write an elegant and poetic explanation in English (2-3 sentences) detailing how the visual elements in this crest symbolize the meaning.`;
+export const generateKamonExplanation = async (kamonBase64: string, meaning: string, locale: string = 'en', cEnv?: any): Promise<string> => {
+  const langInstruction = `Respond natively and beautifully in the language represented by this BCP-47 tag: "${locale}". If the language is not specified, use English. Write an elegant and poetic explanation (2-3 sentences) detailing how the visual elements in this crest symbolize the meaning.`;
 
   const prompt = `This family crest (Kamon) was just generated based on the meaning: "${meaning}".
   Observe the visual elements in the newly created crest image provided.
@@ -300,7 +309,7 @@ export const generateKamonExplanation = async (kamonBase64: string, meaning: str
   ${langInstruction}`;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAiClient(cEnv).models.generateContent({
       model: "gemini-3.1-pro-preview",
       contents: [
         {

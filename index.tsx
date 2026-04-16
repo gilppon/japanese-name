@@ -18,10 +18,14 @@ const initialOptions = {
 };
 
 const root = ReactDOM.createRoot(rootElement);
+import { HelmetProvider } from 'react-helmet-async';
+
 root.render(
   <React.StrictMode>
-    <PayPalScriptProvider options={initialOptions}>
-      <App />
-    </PayPalScriptProvider>
+    <HelmetProvider>
+      <PayPalScriptProvider options={initialOptions}>
+        <App />
+      </PayPalScriptProvider>
+    </HelmetProvider>
   </React.StrictMode>
 );

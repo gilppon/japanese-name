@@ -77,6 +77,9 @@ export const ko = {
   },
   footer: {
     copyright: '名 © 2026 Next-Haru Inc. All rights reserved.',
+    terms: '이용약관',
+    privacy: '개인정보처리방침',
+    refund: '환불 정책',
   },
   seo: {
     title: 'KanjiGen AI — 일본어 한자 이름 생성기 | 당신의 영혼을 담은 한자',

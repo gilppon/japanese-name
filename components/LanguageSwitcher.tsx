@@ -4,6 +4,7 @@ import { useTranslation, Locale } from '../i18n';
 const LANGUAGES: { code: Locale; flag: string; label: string }[] = [
   { code: 'en', flag: '🇺🇸', label: 'EN' },
   { code: 'ko', flag: '🇰🇷', label: 'KO' },
+  { code: 'ja', flag: '🇯🇵', label: 'JP' },
 ];
 
 export const LanguageSwitcher: React.FC = () => {

@@ -34,3 +34,23 @@ export interface NameCandidate {
   meaning: string;
   kamonUrl?: string;
 }
+
+export interface PurchaseRecord {
+  id: string;
+  email: string;
+  paypal_order_id: string;
+  original_name: string;
+  kanji: string;
+  hiragana: string;
+  meaning: string | null;
+  deep_meaning: string | null;
+  lore_text: string | null;
+  hanko_url: string | null;
+  kamon_url: string | null;
+  kamon_explanation: string | null;
+  product_type: 'heritage' | 'kamon';
+  amount_paid: number;
+  locale: string;
+  created_at: string;
+  updated_at: string;
+}

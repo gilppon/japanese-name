@@ -1,26 +1,30 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { en } from './locales/en';
 import { ko } from './locales/ko';
+import { ja } from './locales/ja';
 
-export type Locale = 'en' | 'ko';
+export type Locale = 'en' | 'ko' | 'ja';
 
-export const translations: Record<Locale, typeof en> = { en, ko };
+export const translations: Record<Locale, typeof en> = { en, ko, ja };
 
 // Detect browser language → map to supported locale
 function detectLocale(): Locale {
   const browserLang = navigator.language?.toLowerCase() || 'en';
   if (browserLang.startsWith('ko')) return 'ko';
+  if (browserLang.startsWith('ja')) return 'ja';
   return 'en';
 }
 
 interface LanguageContextType {
   locale: Locale;
+  nativeLocale: string;
   setLocale: (locale: Locale) => void;
   t: (key: string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
   locale: 'en',
+  nativeLocale: 'en-US',
   setLocale: () => {},
   t: (key: string) => key,
 });
@@ -39,6 +43,8 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     return saved || detectLocale();
   });
 
+  const nativeLocale = navigator.language || 'en-US';
+
   useEffect(() => {
     localStorage.setItem('kanjigen-locale', locale);
     document.documentElement.lang = locale;
@@ -54,5 +60,5 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     return getNestedValue(translations[locale], key);
   };
 
-  return React.createElement(LanguageContext.Provider, { value: { locale, setLocale, t } }, children);
+  return React.createElement(LanguageContext.Provider, { value: { locale, nativeLocale, setLocale, t } }, children);
 };

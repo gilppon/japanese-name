@@ -3,12 +3,32 @@ import { Header } from './components/Header';
 import { SpiritFeed } from './components/SpiritFeed';
 import { InputForm } from './components/InputForm';
 import { ResultsDisplay } from './components/ResultsDisplay';
+import { OrderViewPage } from './components/OrderViewPage';
+import { OrderLookup } from './components/OrderLookup';
+import { TermsOfService } from './components/legal/TermsOfService';
+import { RefundPolicy } from './components/legal/RefundPolicy';
+import { PrivacyPolicy } from './components/legal/PrivacyPolicy';
 import { generateNames } from './services/geminiService';
 import { Style, NameCandidate, FontType, UserProfile } from './types';
 import { LanguageProvider, useTranslation } from './i18n';
+import { SEOHead } from './components/SEOHead';
+
+// Simple hash router
+function useHashRouter() {
+  const [route, setRoute] = useState(window.location.hash || '#/');
+
+  useEffect(() => {
+    const handleHashChange = () => setRoute(window.location.hash || '#/');
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  return route;
+}
 
 function AppContent() {
-  const { t, locale } = useTranslation();
+  const { t, nativeLocale } = useTranslation();
+  const route = useHashRouter();
   const [candidates, setCandidates] = useState<NameCandidate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +63,7 @@ function AppContent() {
     setSelectedFont(font);
     setUserProfile(profile);
     try {
-      const results = await generateNames(profile.name, style, locale);
+      const results = await generateNames(profile.name, style, nativeLocale);
       setCandidates(results);
       localStorage.setItem('candidates', JSON.stringify(results));
       localStorage.setItem('userProfile', JSON.stringify(profile));
@@ -58,8 +78,26 @@ function AppContent() {
     }
   };
 
+  // ===== Route: Order View Page =====
+  const viewMatch = route.match(/^#\/view\/([a-f0-9-]+)$/i);
+  if (viewMatch) {
+    return (
+      <OrderViewPage 
+        orderId={viewMatch[1]} 
+        onBack={() => { window.location.hash = '#/'; }}
+      />
+    );
+  }
+
+  // ===== Legal Routes =====
+  if (route === '#/terms') return <><SEOHead title="Terms of Service" path="/terms" /><TermsOfService /></>;
+  if (route === '#/privacy') return <><SEOHead title="Privacy Policy" path="/privacy" /><PrivacyPolicy /></>;
+  if (route === '#/refund') return <><SEOHead title="Refund Policy" path="/refund" /><RefundPolicy /></>;
+
+  // ===== Route: Main Page =====
   return (
     <div className="min-h-screen font-sans bg-[#04151f] text-[#f5e6be] selection:bg-[#d4af37]/30 pb-0 overflow-x-hidden">
+      <SEOHead path="/" />
       {/* Texture Overlay */}
       <div className="fixed inset-0 washi-pattern pointer-events-none z-[100]"></div>
 
@@ -193,7 +231,10 @@ function AppContent() {
           </section>
         </div>
 
-        {/* 4. Footer Decorative Section - The "Arched Garden" */}
+        {/* 5. Order Lookup Section - "내 이름 다시 찾기" */}
+        <OrderLookup />
+
+        {/* 6. Footer Decorative Section - The "Arched Garden" */}
         <section className="relative w-full h-[60vh] flex items-end justify-center overflow-hidden">
           <div className="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-[#04151f] to-transparent z-10"></div>
           
@@ -211,11 +252,20 @@ function AppContent() {
         </section>
       </main>
       
-      <footer className="relative py-20 text-center bg-[#04151f] border-t border-gold/10">
+      <footer className="relative py-16 text-center bg-[#04151f] border-t border-gold/10">
         <div className="absolute inset-0 washi-pattern opacity-20"></div>
-        <div className="relative z-10 flex flex-col items-center gap-8">
+        <div className="relative z-10 flex flex-col items-center gap-6">
+          <div className="flex items-center gap-4 text-xs font-bold tracking-wider text-gold/40 uppercase">
+            <a href="#/terms" className="hover:text-gold transition-colors">{t('footer.terms')}</a>
+            <span>|</span>
+            <a href="#/privacy" className="hover:text-gold transition-colors">{t('footer.privacy')}</a>
+            <span>|</span>
+            <a href="#/refund" className="hover:text-gold transition-colors">{t('footer.refund')}</a>
+          </div>
+
           <div className="h-[1px] w-64 bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
-          <div className="inline-flex items-center gap-4 px-8 py-3 bg-white/5 rounded-full border border-gold/10 text-gold/40 text-sm font-bold tracking-[0.5em] uppercase">
+          
+          <div className="inline-flex items-center gap-4 px-8 py-3 bg-white/5 rounded-full border border-gold/10 text-gold/40 text-[10px] sm:text-xs font-bold tracking-[0.3em] uppercase">
             {t('footer.copyright')}
           </div>
         </div>
