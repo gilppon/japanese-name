@@ -22,6 +22,9 @@ export const en = {
     fontLabel: 'Calligraphic Style',
     submitLoading: 'Transcending...',
     submitButton: 'Commence Reveal',
+    promptName: 'Enter Your Name',
+    promptBirthday: 'Select Your Birthday',
+    promptTraits: 'Select At Least One Virtue',
   },
   traits: {
     'Courage (勇気)': 'Courage (勇気)',
@@ -58,6 +61,7 @@ export const en = {
     loreLoading: 'Weaving Your Ancestral Lore...',
     loreTitle: 'Family Lore',
     kamonTitle: 'Guardian Crest (Kamon)',
+    meaningTitle: 'Philosophy of the Name',
     kamonExplanationTitle: 'Philosophy of the Symbol',
     kamonGeneratingDesc: 'Deciphering the meaning of the crest...',
     downloadButton: 'Download Heirloom (ZIP)',

@@ -29,6 +29,7 @@ const responseSchema = {
 
 export const generateHanko = async (kanji: string, font: string, meaning: string): Promise<string> => {
   try {
+    const stampText = kanji.length === 3 ? `${kanji}印` : kanji;
     const response = await ai.models.generateContent({
       model: 'gemini-3.1-flash-image-preview',
       contents: {
@@ -41,7 +42,7 @@ export const generateHanko = async (kanji: string, font: string, meaning: string
             ABSOLUTELY NO square frames or internal boxes. Do NOT draw a square stamp inside a circle. The ONLY border is the outer circular edge itself.
             
             Key visual attributes:
-            - Content: ONLY the characters "${kanji}" in classic, thick "Tensho-tai" (Ancient Seal Script) calligraphy, elegantly stretched and arranged to fit the circular shape (known as Maruin or Jitsuin style).
+            - Content: EXACTLY the characters "${stampText}" in classic, thick "Tensho-tai" (Ancient Seal Script) calligraphy, elegantly stretched and arranged to fit the circular shape (known as Maruin or Jitsuin style).
             - Texture: Realistic, grainy vermilion ink impression. It must look like it was hand-carved from stone or wood and stamped onto paper, with subtle ink bleed and organic, imperfect edges.
             - Colors: Deep vermilion red ink (#D50500) on a pure white background.
             - Perspective: Straight top-down view.
@@ -190,7 +191,7 @@ export const generateNames = async (englishName: string, style: Style, locale: s
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash",
+      model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -209,6 +210,39 @@ export const generateNames = async (englishName: string, style: Style, locale: s
   } catch (error) {
     console.error("Error calling Gemini API:", error);
     throw new Error("Failed to generate names. Please check your connection.");
+  }
+};
+
+export const generateDeepMeaning = async (kanji: string, meaning: string, locale: string = 'en'): Promise<string> => {
+  const langInstruction = locale === 'ko'
+    ? `한국어로 작성하세요. 각 한자의 음독(On'yomi), 훈독(Kun'yomi), 그리고 한자 자체의 뜻을 한 글자씩 상세히 해부하여 설명하고, 마지막에 이름 전체의 철학적 의미를 2~3문장으로 깊이 있게 요약하세요.`
+    : `Write in English. Explain each Kanji character individually (including On'yomi, Kun'yomi, and meaning), and then provide a deep philosophical explanation of the entire name in 2-3 sentences.`;
+
+  const prompt = `Analyze the Japanese Kanji name: ${kanji} (Brief meaning: ${meaning}).
+  
+${langInstruction}
+
+Expected format (Plain text only, use newlines for spacing, avoid markdown syntax like *, just plain readable text):
+[Kanji 1]
+- 음독/훈독: [Reading]
+- 뜻: [Meaning and origin]
+
+[Kanji 2]
+- 음독/훈독: [Reading]
+- 뜻: [Meaning and origin]
+
+✨ 철학적 자아 (Philosophical Essence)
+[Deep meaning of the name here]`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-pro-preview",
+      contents: prompt,
+    });
+    return response.text.trim();
+  } catch (error) {
+    console.error("Error generating deep meaning:", error);
+    throw error;
   }
 };
 
@@ -295,4 +329,15 @@ export const clientGenerateKamonExplanation = async (kamonBase64: string, meanin
   if (!response.ok) throw new Error('Failed to generate kamon explanation');
   const data = await response.json();
   return data.explanation;
+};
+
+export const clientGenerateDeepMeaning = async (kanji: string, meaning: string, locale: string): Promise<string> => {
+  const response = await fetch('/api/generate-deep-meaning', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kanji, meaning, locale }),
+  });
+  if (!response.ok) throw new Error('Failed to generate deep meaning');
+  const data = await response.json();
+  return data.deepMeaning;
 };

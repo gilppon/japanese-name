@@ -2,7 +2,7 @@ import sharp from "sharp";
 import express from "express";
 import cors from "cors";
 import { createServer as createViteServer } from "vite";
-import { generateHanko, generateLore, generateKamon, generateKamonExplanation } from "./services/geminiService";
+import { generateHanko, generateLore, generateKamon, generateKamonExplanation, generateDeepMeaning } from "./services/geminiService";
 
 async function startServer() {
   const app = express();
@@ -90,6 +90,18 @@ async function startServer() {
     } catch (error: any) {
       console.error("Kamon explanation error:", error);
       res.status(500).json({ error: "Failed to generate kamon explanation" });
+    }
+  });
+
+  // Deep Meaning Generation (Server Side)
+  app.post("/api/generate-deep-meaning", async (req, res) => {
+    try {
+      const { kanji, meaning, locale } = req.body;
+      const deepMeaning = await generateDeepMeaning(kanji, meaning, locale);
+      res.json({ deepMeaning });
+    } catch (error: any) {
+      console.error("Deep Meaning error:", error);
+      res.status(500).json({ error: "Failed to generate deep meaning" });
     }
   });
 

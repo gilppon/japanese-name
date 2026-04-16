@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { clientGenerateHanko, clientGenerateLore, clientGenerateKamon, clientGenerateKamonExplanation } from '../services/geminiService';
+import { clientGenerateHanko, clientGenerateLore, clientGenerateKamon, clientGenerateKamonExplanation, clientGenerateDeepMeaning } from '../services/geminiService';
 import { FontType, NameCandidate, UserProfile } from '../types';
 import { useTranslation } from '../i18n';
 import { PayPalButtons } from "@paypal/react-paypal-js";
@@ -23,6 +23,7 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
   const [loreText, setLoreText] = useState<string | null>(null);
   const [isGeneratingHeritage, setIsGeneratingHeritage] = useState(false);
   const [heritageError, setHeritageError] = useState<string | null>(null);
+  const [deepMeaningText, setDeepMeaningText] = useState<string | null>(null);
   
   // Kamon ($3.99) state
   const [kamonImage, setKamonImage] = useState<string | null>(null);
@@ -39,7 +40,7 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
                         font === FontType.Serif ? 'Mincho/Serif' :
                         font === FontType.Handwritten ? 'Handwritten' : 'Minimalist Sans';
                          
-      const [imgData, lore] = await Promise.all([
+      const [imgData, lore, deepMeaning] = await Promise.all([
         clientGenerateHanko(candidate.kanji, fontLabel, candidate.meaning),
         userProfile
           ? clientGenerateLore(
@@ -51,9 +52,11 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
               locale
             )
           : Promise.resolve(null),
+        clientGenerateDeepMeaning(candidate.kanji, candidate.meaning, locale)
       ]);
       setHankoImage(imgData);
       setLoreText(lore);
+      setDeepMeaningText(deepMeaning);
     } catch (e) {
       console.error(e);
       setHeritageError("Generation failed. Your payment was successful. Please contact support.");
@@ -119,7 +122,11 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
             </h3>
           </div>
 
-          <div className="w-full text-center px-4 mt-4">
+          <div className="w-full text-center px-4 mt-2">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <span className="material-symbols-outlined text-gold/60 text-[14px]">auto_awesome</span>
+              <p className="text-[10px] text-gold/60 uppercase tracking-[0.4em] font-black">{t('card.meaningTitle')}</p>
+            </div>
             <p className="text-[#f5e6be] text-base font-medium leading-relaxed drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] italic">
               "{candidate.meaning}"
             </p>
@@ -313,10 +320,30 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
                     </h3>
                   </div>
 
-                  <div className="w-full text-center mb-10 px-4">
-                    <p className="text-[#f5e6be] text-base font-medium leading-relaxed drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] italic">
-                      "{candidate.meaning}"
-                    </p>
+                  <div className="w-full text-left mb-10 px-4">
+                    <div className="flex items-center justify-center gap-2 mb-3 text-center">
+                      <span className="material-symbols-outlined text-gold/60 text-[14px]">auto_awesome</span>
+                      <p className="text-[10px] text-gold/60 uppercase tracking-[0.4em] font-black">{t('card.meaningTitle')}</p>
+                    </div>
+                    
+                    {isGeneratingHeritage && !deepMeaningText && <div className="text-center text-gold/40 text-[10px] tracking-widest animate-pulse uppercase my-4">Deciphering Kanji...</div>}
+                    
+                    {deepMeaningText ? (
+                      <div className="bg-black/30 border border-gold/10 rounded-xl p-5 text-left">
+                        {deepMeaningText.split('\n').map((line, i) => {
+                          const isHeading = line.startsWith('[') || line.startsWith('✨');
+                          return (
+                            <p key={i} className={`text-[#f5e6be] text-sm leading-relaxed ${isHeading ? 'font-bold mt-4 mb-1 text-gold/90' : 'font-medium opacity-90'}`}>
+                              {line}
+                            </p>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-[#f5e6be] text-lg text-center font-medium leading-relaxed drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] italic">
+                        "{candidate.meaning}"
+                      </p>
+                    )}
                   </div>
 
                   {/* Lore */}
