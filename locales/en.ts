@@ -1,14 +1,14 @@
 export const en = {
   header: {
-    subtitle: 'Traditional Japanese Name  AI Studio',
+    subtitle: 'The Digital Heritage Artist — AI Studio',
   },
   hero: {
-    title: 'Discovery of Identity',
+    title: 'Your Identity, Reimagined as Art',
   },
   form: {
-    sectionTitle: 'Spirit',
-    sectionHeading: 'Translate Your',
-    sectionDesc: 'Ancient algorithm meets modern intelligence to find the Kanji that resonates with your soul.',
+    sectionTitle: 'Heritage',
+    sectionHeading: 'Commission Your',
+    sectionDesc: 'Where ancient calligraphic soul meets modern AI artistry. Discover the Kanji that defines your lineage.',
     nameLabel: 'Origin Name',
     namePlaceholder: 'ENTER YOUR NAME...',
     birthdayLabel: 'Birth Date — 生年月日',
@@ -80,8 +80,8 @@ export const en = {
     refund: 'Refund Policy',
   },
   seo: {
-    title: 'KanjiGen AI — Japanese Kanji Name Generator | Your Identity in Kanji',
-    description: 'Discover your Japanese Kanji name with AI. Get a personalized Hanko seal, Sengoku-era family lore, and a unique Kamon crest — all crafted by advanced AI.',
+    title: 'KanjiGen AI — Your Heritage Artist | Custom Japanese Kanji Designs',
+    description: 'Commission your unique Japanese Kanji identity. AI-powered authentic name generation with bespoke Hanko seals and traditional Kamon family crests.',
   },
   feed: {
     live: 'Live Discovery',
