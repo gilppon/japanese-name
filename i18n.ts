@@ -2,16 +2,24 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { en } from './locales/en';
 import { ko } from './locales/ko';
 import { ja } from './locales/ja';
+import { fr } from './locales/fr';
+import { es } from './locales/es';
+import { pt } from './locales/pt';
+import { de } from './locales/de';
 
-export type Locale = 'en' | 'ko' | 'ja';
+export type Locale = 'en' | 'ko' | 'ja' | 'fr' | 'es' | 'pt' | 'de';
 
-export const translations: Record<Locale, typeof en> = { en, ko, ja };
+export const translations: Record<Locale, typeof en> = { en, ko, ja, fr, es, pt, de };
 
 // Detect browser language → map to supported locale
 function detectLocale(): Locale {
   const browserLang = navigator.language?.toLowerCase() || 'en';
   if (browserLang.startsWith('ko')) return 'ko';
   if (browserLang.startsWith('ja')) return 'ja';
+  if (browserLang.startsWith('fr')) return 'fr';
+  if (browserLang.startsWith('es')) return 'es';
+  if (browserLang.startsWith('pt')) return 'pt';
+  if (browserLang.startsWith('de')) return 'de';
   return 'en';
 }
 
@@ -43,7 +51,15 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     return saved || detectLocale();
   });
 
-  const nativeLocale = navigator.language || 'en-US';
+  const nativeLocale = {
+    ko: 'ko-KR',
+    ja: 'ja-JP',
+    fr: 'fr-FR',
+    es: 'es-ES',
+    pt: 'pt-BR',
+    de: 'de-DE',
+    en: 'en-US'
+  }[locale] || 'en-US';
 
   useEffect(() => {
     localStorage.setItem('kanjigen-locale', locale);

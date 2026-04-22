@@ -35,6 +35,10 @@ export const NameCard: React.FC<NameCardProps> = ({ candidate, font, onSelect })
               font === FontType.Brush ? 'font-brush' :
               font === FontType.Serif ? 'font-serif-jp' :
               font === FontType.Handwritten ? 'font-hand' :
+              font === FontType.ClassicSerif ? 'font-classic' :
+              font === FontType.Pen ? 'font-pen' :
+              font === FontType.Pop ? 'font-pop' :
+              font === FontType.Rounded ? 'font-rounded' :
               'font-minimal'
             }`}>
               {candidate.kanji}

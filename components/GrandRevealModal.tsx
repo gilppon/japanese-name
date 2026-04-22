@@ -5,6 +5,8 @@ import { useTranslation } from '../i18n';
 import { PayPalButtons } from "@paypal/react-paypal-js";
 
 declare const html2canvas: any;
+declare const JSZip: any;
+
 
 interface GrandRevealModalProps {
   candidate: NameCandidate;
@@ -30,6 +32,15 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
   const [orderSaveMessage, setOrderSaveMessage] = useState<string | null>(null);
   const [payerEmail, setPayerEmail] = useState<string | null>(null);
   const [heritagePaypalOrderId, setHeritagePaypalOrderId] = useState<string | null>(null);
+
+  // Regeneration & Finalization state
+  const [regenCount, setRegenCount] = useState(0);
+  const MAX_REGEN = 3;
+  const [savedOrderId, setSavedOrderId] = useState<string | null>(null);
+  const [hankoFinalized, setHankoFinalized] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [finalizeMessage, setFinalizeMessage] = useState<string | null>(null);
   
   // Kamon ($3.99) state
   const [kamonImage, setKamonImage] = useState<string | null>(null);
@@ -66,7 +77,7 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
       setLoreText(lore);
       setDeepMeaningText(deepMeaning);
 
-      // Circuit Breaker: 서버 저장 시도 (실패해도 생성물은 유지)
+      // Circuit Breaker: 서버 저장 시도 (이메일은 확정 시 발송 — /finalize-order)
       if (email && paypalOrderId) {
         try {
           const saveResp = await fetch('/api/save-order', {
@@ -90,11 +101,8 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
           const saveData = await saveResp.json();
           if (saveData.success) {
             setOrderSaved(true);
-            setOrderSaveMessage(
-              saveData.emailFailed
-                ? '✅ Your heritage is saved! (Email delivery will retry later)'
-                : '✅ Saved! A permanent heritage link has been sent to your email.'
-            );
+            setSavedOrderId(saveData.orderId);
+            setOrderSaveMessage('✅ Heritage saved! Please review your seal and confirm below.');
           } else if (saveData.fallback) {
             setOrderSaveMessage('⚠️ Cloud save unavailable. Please download your files directly.');
           }
@@ -111,23 +119,136 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
     }
   };
 
+  // Regenerate Hanko (max 3 times)
+  const handleRegenerateHanko = async () => {
+    if (regenCount >= MAX_REGEN || hankoFinalized) return;
+    setIsRegenerating(true);
+    setHeritageError(null);
+    try {
+      const fontLabel = font === FontType.Brush ? 'Brush Calligraphy' :
+                        font === FontType.Serif ? 'Mincho/Serif' :
+                        font === FontType.Handwritten ? 'Handwritten' : 'Minimalist Sans';
+      const imgData = await clientGenerateHanko(candidate.kanji, fontLabel, candidate.meaning);
+      setHankoImage(imgData);
+      setRegenCount(prev => prev + 1);
+    } catch (e) {
+      console.error(e);
+      setHeritageError('Regeneration failed. Please try again.');
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
+  // Finalize Hanko & trigger email delivery
+  const handleFinalizeHanko = async () => {
+    if (hankoFinalized) return;
+    setIsFinalizing(true);
+    try {
+      const resp = await fetch('/api/finalize-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: savedOrderId,
+          hankoUrl: hankoImage
+        })
+      });
+      const data = await resp.json();
+      setHankoFinalized(true);
+      if (data.success) {
+        setFinalizeMessage(
+          data.emailFailed
+            ? '✅ Seal confirmed! (Email delivery will retry later)'
+            : `✅ Confirmed! Heritage email sent to ${payerEmail || 'your PayPal email'}.`
+        );
+      } else {
+        setFinalizeMessage('⚠️ Confirmed, but email delivery failed. Please download directly.');
+      }
+    } catch (err) {
+      console.error('[Finalize] Error:', err);
+      setHankoFinalized(true);
+      setFinalizeMessage('⚠️ Confirmed, but email delivery failed. Please download directly.');
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
+
   const handleDownload = async () => {
     if (!cardRef.current) return;
     try {
+      setIsGeneratingHeritage(true); // Show loading state during packaging
+      
+      // 1. Capture the Heirloom Card
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: '#0a1f2c',
         scale: 2,
         useCORS: true,
       });
-      const dataUrl = canvas.toDataURL('image/png');
+      const cardDataUrl = canvas.toDataURL('image/png');
+      const cardBlob = await (await fetch(cardDataUrl)).blob();
+
+      // 2. Prepare ZIP
+      const zip = new JSZip();
+      const folder = zip.folder(`${candidate.kanji}_Heritage_Artifacts`);
+      
+      // Add Main Card
+      folder.file("Heirloom_Card.png", cardBlob);
+
+      // Add Hanko if available
+      if (hankoImage) {
+        const hankoBlob = await (await fetch(hankoImage)).blob();
+        folder.file("Hanko_Stamp.png", hankoBlob);
+      }
+
+      // Add Kamon if available
+      if (kamonImage) {
+        const kamonBlob = await (await fetch(kamonImage)).blob();
+        folder.file("Kamon_Crest.png", kamonBlob);
+      }
+
+      // 3. Create Explanation Text
+      let explanation = `==========================================\n`;
+      explanation += `   HERITAGE ARTIFACT: ${candidate.kanji}\n`;
+      explanation += `==========================================\n\n`;
+      explanation += `[ Identity ]\n`;
+      explanation += `Kanji: ${candidate.kanji}\n`;
+      explanation += `Reading: ${candidate.hiragana}\n`;
+      explanation += `Meaning: ${candidate.meaning}\n\n`;
+
+      if (deepMeaningText) {
+        explanation += `[ Philosophy of the Name ]\n`;
+        explanation += `${deepMeaningText}\n\n`;
+      }
+
+      if (loreText) {
+        explanation += `[ Ancestral Lore ]\n`;
+        explanation += `${loreText}\n\n`;
+      }
+
+      if (kamonExplanation) {
+        explanation += `[ Philosophy of the Symbol (Kamon) ]\n`;
+        explanation += `${kamonExplanation}\n\n`;
+      }
+
+      explanation += `------------------------------------------\n`;
+      explanation += `Generated by KanjiGen AI Studio\n`;
+      explanation += `© 2026 Next-Haru Inc. All rights reserved.\n`;
+
+      folder.file("Heritage_Explanation.txt", explanation);
+
+      // 4. Generate & Trigger Download
+      const content = await zip.generateAsync({ type: "blob" });
       const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = `kanji-name-${candidate.kanji}.png`;
+      link.href = URL.createObjectURL(content);
+      link.download = `${candidate.kanji}_Heritage_Package.zip`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      
     } catch (error) {
-      console.error('Error generating image:', error);
+      console.error('Error generating heritage package:', error);
+      alert("Failed to package assets. Please try again.");
+    } finally {
+      setIsGeneratingHeritage(false);
     }
   };
 
@@ -271,7 +392,7 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
           <div className="w-full space-y-6">
             {/* Hanko Seal */}
             <div className="w-full flex flex-col items-center gap-4 bg-white/5 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
-              {isGeneratingHeritage && <div className="absolute inset-0 bg-black/40 backdrop-blur-sm z-20 flex items-center justify-center animate-pulse"><span className="text-gold font-black tracking-widest uppercase text-xs">Forging Seal...</span></div>}
+              {(isGeneratingHeritage || isRegenerating) && <div className="absolute inset-0 bg-black/40 backdrop-blur-sm z-20 flex items-center justify-center animate-pulse"><span className="text-gold font-black tracking-widest uppercase text-xs">{isRegenerating ? 'Re-Forging Seal...' : 'Forging Seal...'}</span></div>}
               {heritageError && <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center p-4"><span className="text-red-400 text-sm text-center">{heritageError}</span></div>}
               
               <div className="flex flex-col items-center text-center mb-2">
@@ -280,8 +401,8 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
               </div>
               
               <div className="relative group cursor-pointer">
-                <div className="absolute -inset-4 bg-red-600/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="w-40 h-40 bg-white/95 rounded-full flex items-center justify-center p-4 shadow-2xl relative border-4 border-red-600/30">
+                <div className={`absolute -inset-4 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${hankoFinalized ? 'bg-emerald-500/20' : 'bg-red-600/20'}`}></div>
+                <div className={`w-40 h-40 bg-white/95 rounded-full flex items-center justify-center p-4 shadow-2xl relative border-4 ${hankoFinalized ? 'border-emerald-500/50' : 'border-red-600/30'}`}>
                   {hankoImage ? (
                     <img 
                       src={hankoImage} 
@@ -295,6 +416,56 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
                   )}
                 </div>
               </div>
+
+              {/* Regenerate + Finalize Buttons */}
+              {hankoImage && !hankoFinalized && (
+                <div className="w-full flex flex-col items-center gap-3 mt-2">
+                  {/* Regenerate Button */}
+                  <button
+                    disabled={regenCount >= MAX_REGEN || isRegenerating}
+                    onClick={handleRegenerateHanko}
+                    className={`w-full inline-flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest border px-6 py-3 rounded-full transition-all ${
+                      regenCount >= MAX_REGEN
+                        ? 'text-gray-600 border-gray-800 cursor-not-allowed opacity-50'
+                        : 'text-amber-400 border-amber-400/30 hover:text-white hover:border-amber-400 hover:bg-amber-400/10'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-sm">refresh</span>
+                    {regenCount >= MAX_REGEN
+                      ? `Regeneration Limit Reached (${MAX_REGEN}/${MAX_REGEN})`
+                      : `Re-forge Seal (${regenCount}/${MAX_REGEN} used)`
+                    }
+                  </button>
+
+                  {/* Finalize Button */}
+                  <button
+                    disabled={isFinalizing}
+                    onClick={handleFinalizeHanko}
+                    className="w-full inline-flex items-center justify-center gap-2 text-sm font-black uppercase tracking-widest px-6 py-4 rounded-full transition-all bg-gradient-to-r from-emerald-600 to-emerald-500 text-white hover:from-emerald-500 hover:to-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)]"
+                  >
+                    <span className="material-symbols-outlined text-base">check_circle</span>
+                    {isFinalizing ? 'Confirming...' : 'Confirm This Seal & Send Email'}
+                  </button>
+                  <p className="text-[10px] text-white/40 text-center">⚠️ Once confirmed, the seal cannot be changed.</p>
+                </div>
+              )}
+
+              {/* Finalized Badge */}
+              {hankoFinalized && (
+                <div className="w-full flex flex-col items-center gap-2 mt-2 animate-fade-in">
+                  <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-6 py-3 rounded-full text-xs font-black uppercase tracking-widest">
+                    <span className="material-symbols-outlined text-sm">verified</span>
+                    Seal Confirmed
+                  </div>
+                  {finalizeMessage && (
+                    <p className={`text-[11px] text-center px-4 ${
+                      finalizeMessage.includes('⚠️') ? 'text-amber-300' : 'text-emerald-300/80'
+                    }`}>
+                      {finalizeMessage}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="w-full flex-col text-center space-y-3">
                 <p className="text-[11px] text-[#f5e6be]/80 italic max-w-[280px] mx-auto bg-black/20 p-2 rounded-lg border border-gold/10">
@@ -436,6 +607,9 @@ export const GrandRevealModal: React.FC<GrandRevealModalProps> = ({ candidate, f
                   <p>{orderSaveMessage}</p>
                   {payerEmail && orderSaved && (
                     <p className="text-[10px] mt-2 opacity-60">📧 {payerEmail}</p>
+                  )}
+                  {!hankoFinalized && orderSaved && (
+                    <p className="text-[10px] mt-1 text-amber-400/80 animate-pulse">⏳ Email will be sent after you confirm your seal above.</p>
                   )}
                 </div>
               )}

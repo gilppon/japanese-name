@@ -64,7 +64,7 @@ export const ja = {
     meaningTitle: '名前の哲学',
     kamonExplanationTitle: '象徴の哲学',
     kamonGeneratingDesc: '家紋の意味を解読中...',
-    downloadButton: '家宝（ZIP）をダウンロード',
+    downloadButton: '家宝をダウンロード',
     kamonUpsellTitle: '遺産を完成させる',
     kamonUpsellDesc: '一族の記述は完成しましたが、あなただけの紋章はまだ彫刻されていません。特注の家紋デザインを依頼してください。',
     kamonUpsellBtn: 'カスタム家紋を依頼する 👑',

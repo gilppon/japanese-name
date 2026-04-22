@@ -170,11 +170,19 @@ export const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => 
                   font === FontType.Brush ? 'font-brush text-xl' :
                   font === FontType.Serif ? 'font-serif-jp text-xl' :
                   font === FontType.Handwritten ? 'font-hand text-xl' :
-                  'font-minimal'
+                  font === FontType.ClassicSerif ? 'font-classic text-xl' :
+                  font === FontType.Pen ? 'font-pen text-xl' :
+                  font === FontType.Pop ? 'font-pop text-xl' :
+                  font === FontType.Rounded ? 'font-rounded text-xl' :
+                  'font-minimal text-xl'
                 }>
                   {font === FontType.Brush ? '書法' :
                    font === FontType.Serif ? '明朝' :
                    font === FontType.Handwritten ? '手描' :
+                   font === FontType.ClassicSerif ? '古典' :
+                   font === FontType.Pen ? '硬筆' :
+                   font === FontType.Pop ? '丸字' :
+                   font === FontType.Rounded ? '丸角' :
                    '極小'}
                 </div>
                 <div className="text-[10px] mt-1 opacity-60 uppercase tracking-tighter">{font}</div>

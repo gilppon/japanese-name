@@ -66,7 +66,7 @@ export const ko = {
     meaningTitle: '이름의 철학 (Meaning)',
     kamonExplanationTitle: '상징의 철학',
     kamonGeneratingDesc: '문양에 깃든 의미를 해석 중입니다...',
-    downloadButton: '전체 유산 다운로드 (ZIP)',
+    downloadButton: '전체 유산 다운로드',
     kamonUpsellTitle: '유산의 완성',
     kamonUpsellDesc: '가문의 서사는 쓰여졌으나, 문장은 아직 조각되지 않았습니다. 당신만의 가몬(Kamon) 디자인을 의뢰해보세요.',
     kamonUpsellBtn: '커스텀 가몬 의뢰하기 👑',

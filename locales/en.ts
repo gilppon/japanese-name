@@ -64,7 +64,7 @@ export const en = {
     meaningTitle: 'Philosophy of the Name',
     kamonExplanationTitle: 'Philosophy of the Symbol',
     kamonGeneratingDesc: 'Deciphering the meaning of the crest...',
-    downloadButton: 'Download Heirloom (ZIP)',
+    downloadButton: 'Download Heritage Assets',
     kamonUpsellTitle: 'Complete Your Heritage',
     kamonUpsellDesc: 'Your clan lore is written, but your emblem remains uncarved. Commission your bespoke Kamon design.',
     kamonUpsellBtn: 'Commission Custom Kamon 👑',

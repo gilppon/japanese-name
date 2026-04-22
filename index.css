@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Kaisei+Opti&family=Zen+Kurenaido&family=Noto+Sans+JP:wght@400;700&family=Playfair+Display:wght@700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Kaisei+Opti&family=Zen+Kurenaido&family=Noto+Sans+JP:wght@400;700&family=Playfair+Display:wght@700;900&family=Shippori+Mincho:wght@700&family=Klee+One:wght@600&family=Hachi+Maru+Pop&family=M+PLUS+Rounded+1c:wght@700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -40,6 +40,18 @@
   }
   .font-display {
     font-family: 'Playfair Display', serif;
+  }
+  .font-classic {
+    font-family: 'Shippori Mincho', serif;
+  }
+  .font-pen {
+    font-family: 'Klee One', cursive;
+  }
+  .font-pop {
+    font-family: 'Hachi Maru Pop', cursive;
+  }
+  .font-rounded {
+    font-family: 'M PLUS Rounded 1c', sans-serif;
   }
 
   .text-gold {

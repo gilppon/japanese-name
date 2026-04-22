@@ -6,6 +6,8 @@ import devServer from '@hono/vite-dev-server';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
+    // Ensure that process.env has the loaded variables for plugins and dev server
+    Object.assign(process.env, env);
     return {
       server: {
         port: 3000,
@@ -16,7 +18,7 @@ export default defineConfig(({ mode }) => {
         Sitemap({ hostname: 'https://kanji.next-haru.com', dynamicRoutes: ['/privacy', '/terms', '/refund'] }),
         devServer({
           entry: 'api_engine.ts',
-          exclude: [/^.*\.tsx?$/, /^.*\.(ts|tsx)$/, /^\/assets\/.*/, /^\/src\/.*/]
+          exclude: [/^(?!\/api).*$/]
         })
       ],
       define: {

@@ -67,6 +67,13 @@ async function verifyPayPalOrder(paypalOrderId: string, clientId: string, client
 // ==== MAIN APP SETUP ====
 const app = new Hono().basePath('/api');
 
+// Environment Check for Debugging (Server-side)
+console.log(`[Server] Environment Check:
+  GEMINI_API_KEY: ${process.env.GEMINI_API_KEY ? 'LOADED' : 'MISSING'}
+  SUPABASE_URL: ${process.env.SUPABASE_URL ? 'LOADED' : 'MISSING'}
+  PAYPAL_SECRET: ${process.env.PAYPAL_SECRET ? 'LOADED' : 'MISSING'}
+`);
+
 // Middleware
 app.use('*', cors());
 
@@ -151,7 +158,7 @@ app.post("/generate-deep-meaning", async (c) => {
   }
 });
 
-// Save Order
+// Save Order (DB only — email is deferred until finalize)
 app.post("/save-order", async (c) => {
   try {
     const body = await c.req.json() as any;
@@ -192,15 +199,7 @@ app.post("/save-order", async (c) => {
       dbFailed = true;
     }
 
-    let emailFailed = false;
-    if (savedOrder && !dbFailed) {
-      try {
-        const emailSent = await sendOrderConfirmation(savedOrder, cEnv);
-        if (!emailSent) emailFailed = true;
-      } catch (emailError) {
-        emailFailed = true;
-      }
-    }
+    // NOTE: Email is NOT sent here. Deferred until user confirms via /finalize-order.
 
     if (dbFailed) {
       return c.json({ 
@@ -213,14 +212,55 @@ app.post("/save-order", async (c) => {
     return c.json({
       success: true, 
       orderId: savedOrder!.id,
-      emailFailed,
-      message: emailFailed 
-        ? "Order saved! Email delivery failed — your data is safe in our vault."
-        : "Order saved and confirmation email sent!"
+      message: "Order saved! Awaiting your confirmation to send email."
     });
   } catch (error: any) {
     console.error("Save order error:", error);
     return c.json({ error: "Failed to save order", fallback: true }, 500);
+  }
+});
+
+// Finalize Order — Confirm hanko + send email
+app.post("/finalize-order", async (c) => {
+  try {
+    const body = await c.req.json() as any;
+    const cEnv = env(c);
+    const { orderId, hankoUrl } = body;
+
+    if (!orderId) {
+      return c.json({ error: "Missing orderId" }, 400);
+    }
+
+    // 1. Fetch the existing order
+    const order = await getOrderById(orderId, cEnv);
+    if (!order) {
+      return c.json({ error: "Order not found" }, 404);
+    }
+
+    // 2. Update hanko_url if a regenerated image was provided
+    if (hankoUrl) {
+      order.hanko_url = hankoUrl;
+    }
+
+    // 3. Send the confirmation email with the finalized hanko
+    let emailFailed = false;
+    try {
+      const emailSent = await sendOrderConfirmation(order, cEnv);
+      if (!emailSent) emailFailed = true;
+    } catch (emailError) {
+      emailFailed = true;
+    }
+
+    return c.json({
+      success: true,
+      emailFailed,
+      message: emailFailed
+        ? "Hanko confirmed! Email delivery failed — please download your files directly."
+        : "Hanko confirmed and heritage email sent!"
+    });
+  } catch (error: any) {
+    console.error("Finalize order error:", error);
+    return c.json({ error: "Failed to finalize order" }, 500);
   }
 });
 

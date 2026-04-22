@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { NameCandidate, Style } from '../types';
-import { processHankoImage } from '../utils/hankoCanvasProcessor';
+import type { NameCandidate, Style, FontType } from '../types';
+
 
 // Cloudflare 엣지 환경 지원: process.env 대신 컨텍스트(env)를 명시적으로 주입받거나 글로벌 fallback 사용
 export function getCFApiKey(cEnv?: any): string {
@@ -229,16 +229,16 @@ export const generateDeepMeaning = async (kanji: string, meaning: string, locale
   
 ${langInstruction}
 
-Expected format (Plain text only, use newlines for spacing, avoid markdown syntax like *, just plain readable text):
+Expected format (Plain text only, use newlines for spacing, avoid markdown syntax like *, just plain readable text, and translate all labels and content to the requested language):
 [Kanji 1]
-- 음독/훈독: [Reading]
-- 뜻: [Meaning and origin]
+- Reading: [Reading in Romaji/Kana]
+- Meaning: [Meaning and origin]
 
 [Kanji 2]
-- 음독/훈독: [Reading]
-- 뜻: [Meaning and origin]
+- Reading: [Reading in Romaji/Kana]
+- Meaning: [Meaning and origin]
 
-✨ 철학적 자아 (Philosophical Essence)
+✨ Philosophical Essence
 [Deep meaning of the name here]`;
 
   try {
@@ -266,6 +266,7 @@ export const clientGenerateHanko = async (kanji: string, font: string, meaning: 
   const data = await response.json();
   
   // 서버에서 받은 raw base64를 Canvas 프로세서를 통해 버밀리언 합성
+  const { processHankoImage } = await import('../utils/hankoCanvasProcessor');
   const processedImage = await processHankoImage(data.hankoData);
   return processedImage;
 };

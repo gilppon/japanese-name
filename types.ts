@@ -11,6 +11,10 @@ export enum FontType {
   Serif = 'Serif',
   Handwritten = 'Handwritten',
   Minimal = 'Minimal',
+  ClassicSerif = 'ClassicSerif',
+  Pen = 'Pen',
+  Pop = 'Pop',
+  Rounded = 'Rounded',
 }
 
 export const PERSONALITY_TRAITS = [
